@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="SelectionHighlight.seven.6e857c98-0492-4cff-8c18-bb29dc2cee52" Version="1.0" Language="en-US" Publisher="seven" />
+    <DisplayName>Highlight all occurrences of selected word</DisplayName>
+    <Description xml:space="preserve">This extension will highlight all occurrences of a selected word in the current document and display a glyph on the left margin</Description>
+    <License>License.txt</License>
+    <Icon>SelectionHighlightIcon.jpg</Icon>
+    <PreviewImage>SelectionHighlight.jpg</PreviewImage>
+    <Tags>adornment,Document,Glyph,Highlight,selection,Text,Word</Tags>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0]" />
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
+  </Dependencies>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
+  </Assets>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0,16.0)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+</PackageManifest>
