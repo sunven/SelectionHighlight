@@ -1,131 +1,121 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Text.Tagging;
-using System;
-using System.Collections.Generic;
-using System.Windows.Controls;
-using System.Windows.Media;
 
 namespace SelectionHighlight
 {
-	public class SelectionHighlight
-	{
-		private IAdornmentLayer _layer;
+    public class SelectionHighlight
+    {
+        public static object UpdateLock = new object();
 
-		private IWpfTextView _view;
+        private readonly Brush _brush;
+        private readonly IAdornmentLayer _layer;
 
-		private ITextSelection _selection;
+        private readonly Pen _pen;
 
-		private Brush _brush;
+        public ITagAggregator<MatchTag> TagAggregator { get; }
 
-		private Pen _pen;
+        private readonly ITextSearchService _textSearchService;
 
-		private string selectedText = "";
+        private readonly IWpfTextView _view;
 
-		private VirtualSnapshotSpan selectedWord;
+        private string _selectedText = "";
 
-		private ITextSearchService _textSearchService;
+        private VirtualSnapshotSpan _selectedWord;
 
-		private ITagAggregator<MatchTag> _tagAggregator;
+        public List<SnapshotSpan> SnapShotsToColor = new List<SnapshotSpan>();
 
-		public static object updateLock = new object();
+        public SelectionHighlight(IWpfTextView view, ITextSearchService textSearchService,
+            ITagAggregator<MatchTag> tagAggregator)
+        {
+            _view = view;
+            _layer = view.GetAdornmentLayer("SelectionHighlight");
+            var selection = view.Selection;
+            _textSearchService = textSearchService;
+            TagAggregator = tagAggregator;
+            _view.LayoutChanged += OnLayoutChanged;
+            selection.SelectionChanged += OnSelectionChanged;
+            Brush brush = new SolidColorBrush(Colors.GreenYellow);
+            brush.Freeze();
+            Brush brush2 = new SolidColorBrush(Colors.AliceBlue);
+            brush2.Freeze();
+            var pen = new Pen(brush2, 0.5);
+            pen.Freeze();
+            _brush = brush;
+            _pen = pen;
+        }
 
-		public List<SnapshotSpan> SnapShotsToColor = new List<SnapshotSpan>();
+        private void OnSelectionChanged(object sender, object e)
+        {
+            _selectedText = _view.Selection.StreamSelectionSpan.GetText();
+            _selectedWord = _view.Selection.StreamSelectionSpan;
+            _layer.RemoveAllAdornments();
+            SnapShotsToColor.Clear();
+            if (string.IsNullOrEmpty(_selectedText) || string.IsNullOrWhiteSpace(_selectedText))
+            {
+                return;
+            }
+            var length = _selectedText.Length;
+            var position = _view.Selection.StreamSelectionSpan.Start.Position.Position;
+            var num = position + length;
+            if (position - 1 >= 0 && char.IsLetterOrDigit(_view.TextSnapshot[position - 1]))
+                return;
+            if (num < _view.TextSnapshot.GetText().Length && char.IsLetterOrDigit(_view.TextSnapshot[num]))
+                return;
+            var text = _selectedText;
+            if (text.Any(c => !char.IsLetterOrDigit(c) && c != '_'))
+            {
+                return;
+            }
+            FindWordsInDocument();
+            ColorWords();
+        }
 
-		public SelectionHighlight(IWpfTextView view, ITextSearchService TextSearchService, ITagAggregator<MatchTag> tagAggregator)
-		{
-			this._view = view;
-			this._layer = view.GetAdornmentLayer("SelectionHighlight");
-			this._selection = view.Selection;
-			this._textSearchService = TextSearchService;
-			this._tagAggregator = tagAggregator;
-			this._view.LayoutChanged += new EventHandler<TextViewLayoutChangedEventArgs>(this.OnLayoutChanged);
-			this._selection.SelectionChanged += new EventHandler(this.OnSelectionChanged);
-			Brush brush = new SolidColorBrush(Colors.GreenYellow);
-			brush.Freeze();
-			Brush brush2 = new SolidColorBrush(Colors.AliceBlue);
-			brush2.Freeze();
-			Pen pen = new Pen(brush2, 0.5);
-			pen.Freeze();
-			this._brush = brush;
-			this._pen = pen;
-		}
+        private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
+        {
+            _layer.RemoveAllAdornments();
+            ColorWords();
+        }
 
-		private void OnSelectionChanged(object sender, object e)
-		{
-			this.selectedText = this._view.Selection.StreamSelectionSpan.GetText();
-			this.selectedWord = this._view.Selection.StreamSelectionSpan;
-			this._layer.RemoveAllAdornments();
-			this.SnapShotsToColor.Clear();
-			if (!string.IsNullOrEmpty(this.selectedText) && !string.IsNullOrWhiteSpace(this.selectedText))
-			{
-				int length = this.selectedText.Length;
-				int position = this._view.Selection.StreamSelectionSpan.Start.Position.Position;
-				int num = position + length;
-				if (position - 1 >= 0 && char.IsLetterOrDigit(this._view.TextSnapshot[position - 1]))
-				{
-					return;
-				}
-				if (num < this._view.TextSnapshot.GetText().Length && char.IsLetterOrDigit(this._view.TextSnapshot[num]))
-				{
-					return;
-				}
-				string text = this.selectedText;
-				for (int i = 0; i < text.Length; i++)
-				{
-					char c = text[i];
-					if (!char.IsLetterOrDigit(c) && c != '_')
-					{
-						return;
-					}
-				}
-				this.FindWordsInDocument();
-				this.ColorWords();
-			}
-		}
+        private void FindWordsInDocument()
+        {
+            lock (UpdateLock)
+            {
+                var findData =
+                    new FindData(_selectedWord.GetText(), _selectedWord.Snapshot) {FindOptions = FindOptions.WholeWord};
+                SnapShotsToColor.AddRange(_textSearchService.FindAll(findData));
+            }
+        }
 
-		private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
-		{
-			this._layer.RemoveAllAdornments();
-			this.ColorWords();
-		}
-
-		private void FindWordsInDocument()
-		{
-			lock (SelectionHighlight.updateLock)
-			{
-				FindData findData = new FindData(this.selectedWord.GetText(), this.selectedWord.Snapshot);
-				findData.FindOptions = FindOptions.WholeWord;
-				this.SnapShotsToColor.AddRange(this._textSearchService.FindAll(findData));
-			}
-		}
-
-		private void ColorWords()
-		{
-			IWpfTextViewLineCollection textViewLines = this._view.TextViewLines;
-			foreach (SnapshotSpan current in this.SnapShotsToColor)
-			{
-				try
-				{
-					Geometry markerGeometry = textViewLines.GetMarkerGeometry(current);
-					if (markerGeometry != null)
-					{
-						GeometryDrawing geometryDrawing = new GeometryDrawing(this._brush, this._pen, markerGeometry);
-						geometryDrawing.Freeze();
-						DrawingImage drawingImage = new DrawingImage(geometryDrawing);
-						drawingImage.Freeze();
-						Image image = new Image();
-						image.Source = drawingImage;
-						Canvas.SetLeft(image, markerGeometry.Bounds.Left);
-						Canvas.SetTop(image, markerGeometry.Bounds.Top);
-						this._layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, new SnapshotSpan?(current), null, image, null);
-					}
-				}
-				catch
-				{
-				}
-			}
-		}
-	}
+        private void ColorWords()
+        {
+            var textViewLines = _view.TextViewLines;
+            foreach (var current in SnapShotsToColor)
+                try
+                {
+                    var markerGeometry = textViewLines.GetMarkerGeometry(current);
+                    if (markerGeometry == null)
+                    {
+                        continue;
+                    }
+                    var geometryDrawing = new GeometryDrawing(_brush, _pen, markerGeometry);
+                    geometryDrawing.Freeze();
+                    var drawingImage = new DrawingImage(geometryDrawing);
+                    drawingImage.Freeze();
+                    var image = new Image {Source = drawingImage};
+                    Canvas.SetLeft(image, markerGeometry.Bounds.Left);
+                    Canvas.SetTop(image, markerGeometry.Bounds.Top);
+                    _layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, current, null, image, null);
+                }
+                catch
+                {
+                    // ignored
+                }
+        }
+    }
 }

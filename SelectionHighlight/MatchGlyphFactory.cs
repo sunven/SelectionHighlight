@@ -1,31 +1,26 @@
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Formatting;
-using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace SelectionHighlight
 {
-	internal class MatchGlyphFactory : IGlyphFactory
+    internal class MatchGlyphFactory : IGlyphFactory
 	{
-		private const double _width = 10.0;
+	    public IAdornmentLayer Layer { get; }
 
-		private const double _height = 10.0;
+	    public ITextSelection Selection { get; }
 
-		private IAdornmentLayer _layer;
-
-		private ITextSelection _selection;
-
-		public MatchGlyphFactory(IWpfTextView view)
+	    public MatchGlyphFactory(IWpfTextView view)
 		{
-			this._layer = view.GetAdornmentLayer("SelectionHighlight");
-			this._selection = view.Selection;
+			Layer = view.GetAdornmentLayer("SelectionHighlight");
+			Selection = view.Selection;
 		}
 
 		public UIElement GenerateGlyph(IWpfTextViewLine line, IGlyphTag tag)
 		{
-			if (tag == null || !(tag is MatchTag))
+			if (!(tag is MatchTag))
 			{
 				return null;
 			}

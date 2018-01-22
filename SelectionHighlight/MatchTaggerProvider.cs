@@ -26,13 +26,13 @@ namespace SelectionHighlight
 		{
 			if (buffer == null)
 			{
-				throw new ArgumentNullException("buffer");
+				throw new ArgumentNullException(nameof(buffer));
 			}
 			if (textView.TextBuffer != buffer)
 			{
 				return null;
 			}
-			return new MatchTagger(textView, buffer, this.AggregatorFactory.GetClassifier(buffer), this.TextSearchService) as ITagger<T>;
+			return new MatchTagger(textView, buffer, AggregatorFactory.GetClassifier(buffer), TextSearchService) as ITagger<T>;
 		}
 	}
 }
