@@ -16,3 +16,7 @@ All occurrences of the word selected should be highlighted in the current docume
 - The author of original tool is Nicholas Sha.[https://marketplace.visualstudio.com/vsgallery/4b92b6ad-f563-4705-8f7b-7f85ba3cc6bb](https://marketplace.visualstudio.com/vsgallery/4b92b6ad-f563-4705-8f7b-7f85ba3cc6bb)
 
 I have only modified the manifest file to support Visual studio 2017 
+
+## reference
+
+[https://searchcode.com/codesearch/view/85253654/](https://searchcode.com/codesearch/view/85253654/)
