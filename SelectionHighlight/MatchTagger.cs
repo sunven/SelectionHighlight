@@ -96,9 +96,13 @@ namespace SelectionHighlight
             {
                 Task.Factory.StartNew(() =>
                 {
-                    var findData =
+                    // By this time the selection might have gone
+                    if (!_selectedWord.IsEmpty)
+                    {
+                        var findData =
                                         new FindData(_selectedWord.GetText(), _selectedWord.Snapshot) { FindOptions = FindOptions.WholeWord };
-                    _glyphsToPlace.AddRange(_textSearchService.FindAll(findData));
+                        _glyphsToPlace.AddRange(_textSearchService.FindAll(findData));
+                    }
                 });
             }
         }
